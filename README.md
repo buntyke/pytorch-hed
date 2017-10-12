@@ -1,10 +1,15 @@
 # hed_pytorch
----
 
 Pytorch implementation of Holistically-nested Edge Detection (HED) [1]. This repo can be used to train a HED model and perform test inference. The implementation was evaluated on the BSDS dataset.
 
+* [Prerequisites](#prerequisites)
+* [Usage](#usage)
+* [Performance](#performance)
+* [Files](#files)
+* [Acknoledgement](#acknowledgement)
+* [References](#references)
+
 ## Prerequisites
----
 
 * Compute environment with GPU (optional).
 * Python environment: [Anaconda](https://conda.io/docs/user-guide/install/index.html) is recommended.
@@ -15,7 +20,6 @@ Pytorch implementation of Holistically-nested Edge Detection (HED) [1]. This rep
 I use docker to avoid dependency problems. Installation instructions for my setup are available [here](Install.md).
 
 ## Usage
----
 
 * Download repository:
   ```
@@ -40,17 +44,15 @@ I use docker to avoid dependency problems. Installation instructions for my setu
   The trained model along with validation results are stored in the output folder.
 
 ## Performance
----
 
 * 
 
 ## Files
----
 
-* **train.ipynb**: Notebook to train HED model.
-* **trainer.py**: Helper class to train model and perform validation.
-* **model.py**: HED model definition given through several class implementations.
-* **dataproc.py**: Dataset class implementation used in Trainer class.
+* [train.ipynb](train.ipynb): Notebook to train HED model.
+* [trainer.py](trainer.py): Helper class to train model and perform validation.
+* [model.py](model.py): HED model definition given through several class implementations.
+* [dataproc.py](dataproc.py): Dataset class implementation used in Trainer class.
 
 ## Acknowledgement
 ---
@@ -61,6 +63,9 @@ The source code is derived from three different implementations available online
 ---
 
 [1]: [Xie, Saining, et al., "Holistically-nested edge detection," in *ICCV 2015*.](https://arxiv.org/abs/1504.06375)
+
 [2]: [HED Caffe Implementation](https://github.com/s9xie/hed)
+
 [3]: [HED Pytorch Implementation 1](https://github.com/EliasVansteenkiste/edge_detection_framework)
+
 [4]: [HED Pytorch Implementation 2](https://github.com/xlliu7/hed.pytorch)
