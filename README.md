@@ -56,11 +56,9 @@ I use docker to avoid dependency problems. Installation instructions for my setu
 
 ## Acknowledgement
 
-The source code is derived from three different implementations available online. Thanks to [@s9xie][2] for original caffe implementation. Thanks to [@EliasVansteenkiste][3] and @[xlliu][4] for the pytorch implementations.
+The source code is derived from three different implementations available online. Thanks to [@s9xie][2] for original caffe implementation. Thanks to [@EliasVansteenkiste][3] and [@xlliu][4] for the pytorch implementations.
 
-## References
-
-[1]: "https://arxiv.org/abs/1504.06375" "HED"
+[1]: https://arxiv.org/abs/1504.06375 "HED"
 
 [2]: https://github.com/s9xie/hed "Caffe"
 
