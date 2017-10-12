@@ -1,5 +1,4 @@
-## Installation
----
+# Installation
 
 Please follow these instructions to setup the computation environment. I use docker for the pytorch environment to avoid dependency issues and portability. 
 
