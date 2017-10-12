@@ -1,6 +1,6 @@
 # hed_pytorch
 
-Pytorch implementation of Holistically-nested Edge Detection (HED) [1]. This repo can be used to train a HED model and perform test inference. The implementation was evaluated on the BSDS dataset.
+Pytorch implementation of [Holistically-nested Edge Detection (HED)][1]. This repo can be used to train a HED model and perform test inference. The implementation was evaluated on the BSDS dataset.
 
 * [Prerequisites](#prerequisites)
 * [Usage](#usage)
@@ -55,12 +55,10 @@ I use docker to avoid dependency problems. Installation instructions for my setu
 * [dataproc.py](dataproc.py): Dataset class implementation used in Trainer class.
 
 ## Acknowledgement
----
 
-The source code is derived from three different implementations available online. Thanks to @s9xie [2] for original caffe implementation. Thanks to @EliasVansteenkiste [3] and @xlliu [4] for the pytorch implementations.
+The source code is derived from three different implementations available online. Thanks to [@s9xie][2] for original caffe implementation. Thanks to [@EliasVansteenkiste][3] and @[xlliu][4] for the pytorch implementations.
 
 ## References
----
 
 [1]: [Xie, Saining, et al., "Holistically-nested edge detection," in *ICCV 2015*.](https://arxiv.org/abs/1504.06375)
 
