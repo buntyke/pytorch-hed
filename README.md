@@ -60,10 +60,10 @@ The source code is derived from three different implementations available online
 
 ## References
 
-[1]: [Xie, Saining, et al., "Holistically-nested edge detection," in *ICCV 2015*.](https://arxiv.org/abs/1504.06375)
+[1]: "https://arxiv.org/abs/1504.06375" "HED"
 
-[2]: [HED Caffe Implementation](https://github.com/s9xie/hed)
+[2]: https://github.com/s9xie/hed "Caffe"
 
-[3]: [HED Pytorch Implementation 1](https://github.com/EliasVansteenkiste/edge_detection_framework)
+[3]: https://github.com/EliasVansteenkiste/edge_detection_framework "Pytorch 1"
 
-[4]: [HED Pytorch Implementation 2](https://github.com/xlliu7/hed.pytorch)
+[4]: https://github.com/xlliu7/hed.pytorch "Pytorch 2"
