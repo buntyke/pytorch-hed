@@ -5,22 +5,12 @@ import torchvision
 import torch.nn as nn
 import torch.nn.functional as F
 
-# function to crop the padding pixels
-def crop(d, g):
-    g_h, g_w = g.size()[2:4]
-    d_h, d_w = d.size()[2:4]
-    d1 = d[:, :, int(math.floor((d_h - g_h)/2.0)):int(math.floor((d_h - g_h)/2.0)) + g_h, int(math.floor((d_w - g_w)/2.0)):int(math.floor((d_w - g_w)/2.0)) + g_w]
-    return d1
-
 # VGG 16 Features Model definition
 class VGG16features(nn.Module):
     def __init__(self, activation=F.relu):
         super(VGG16features, self).__init__()
 
         self.activation = activation
-
-        self.init_pad = torch.nn.ReflectionPad2d(32)
-
         self.conv1_1 = nn.Conv2d(3, 64, kernel_size=3, stride=1, padding=(33, 33))
         self.conv1_2 = nn.Conv2d(64, 64, kernel_size=3, stride=1, padding=1)
         self.pool1 = nn.MaxPool2d(kernel_size=2, stride=2, padding=0)
@@ -219,7 +209,7 @@ def vgg16(pretrained=False, **kwargs):
 
 # definition of HED module
 class HED(nn.Module):
-    def __init__(self, dilation=0):
+    def __init__(self, pretrained=True):
         # define VGG architecture and layers
         super(HED, self).__init__()
         
@@ -238,41 +228,45 @@ class HED(nn.Module):
         self.upscore5 = nn.Upsample(scale_factor=16, mode='bilinear')              
         
         # initialize weights of layers
-        for m in self.modules():
-            if isinstance(m, nn.Conv2d):
-                n = m.kernel_size[0] * m.kernel_size[1] * m.out_channels
-                m.weight.data.normal_(0, (2. / n) ** .5)
-            elif isinstance(m, nn.BatchNorm2d):
-                m.weight.data.fill_(1)
-                m.bias.data.zero_()
+        for m in self.named_modules():
+            if m[0] == 'dsn6':
+                m[1].weight.data.fill_(0.2)
+            elif isinstance(m[1], nn.Conv2d):
+                n = m[1].kernel_size[0] * m[1].kernel_size[1] * m[1].out_channels
+                m[1].weight.data.normal_(0, (2. / n) ** .5)
+            elif isinstance(m[1], nn.BatchNorm2d):
+                m[1].weight.data.fill_(1)
+                m[1].bias.data.zero_()
         
-        _, VGG16fs = vgg16(pretrained=True)
+        _, VGG16fs = vgg16(pretrained=pretrained)
         self.VGG16fs = VGG16fs
 
     # define the computation graph
-    def forward(self, x, gt):
+    def forward(self, x):
 
+        size = x.size()[2:4]
+        
         # get output from VGG model
         conv1, conv2, conv3, conv4, conv5 = self.VGG16fs.forward_hypercol(x)
 
         ## side output
         dsn5_up = self.upscore5(self.dsn5(conv5))
-        d5 = crop(dsn5_up, gt)
+        d5 = self.crop(dsn5_up, size)
         
         dsn4_up = self.upscore4(self.dsn4(conv4))
-        d4 = crop(dsn4_up, gt)
+        d4 = self.crop(dsn4_up, size)
         
         dsn3_up = self.upscore3(self.dsn3(conv3))
-        d3 = crop(dsn3_up, gt)
+        d3 = self.crop(dsn3_up, size)
         
         dsn2_up = self.upscore2(self.dsn2(conv2))
-        d2 = crop(dsn2_up, gt)
+        d2 = self.crop(dsn2_up, size)
         
         dsn1 = self.dsn1(conv1)
-        d1 = crop(dsn1, gt)
+        d1 = self.crop(dsn1, size)
 
-        # equally weighted fusion
-        d6 = 0.2*d1 + 0.2*d2 + 0.2*d3 + 0.2*d4 + 0.2*d5
+        # weighted fusion (with learning fusion weights)
+        d6 = self.dsn6(torch.cat((d1,d2,d3,d4,d5),1))
         
         d1 = F.sigmoid(d1)
         d2 = F.sigmoid(d2)
@@ -282,3 +276,10 @@ class HED(nn.Module):
         d6 = F.sigmoid(d6)
 
         return d1, d2, d3, d4, d5, d6
+    
+    # function to crop the padding pixels
+    def crop(self, d, size):
+        d_h, d_w = d.size()[2:4]
+        g_h, g_w = size[0], size[1]
+        d1 = d[:, :, int(math.floor((d_h - g_h)/2.0)):int(math.floor((d_h - g_h)/2.0)) + g_h, int(math.floor((d_w - g_w)/2.0)):int(math.floor((d_w - g_w)/2.0)) + g_w]
+        return d1
