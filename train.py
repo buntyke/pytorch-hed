@@ -20,7 +20,7 @@ rng = np.random.RandomState(37148)
 gpuID = 0
 
 # batch size
-nBatch = 2
+nBatch = 1
 
 # load the images dataset
 dataRoot = '../HED-BSDS/'
