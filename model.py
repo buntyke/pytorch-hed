@@ -1,285 +1,190 @@
 # import libraries
 import math
 import torch
-import torchvision
 import torch.nn as nn
+import torch.nn.init as init
 import torch.nn.functional as F
 
-# VGG 16 Features Model definition
-class VGG16features(nn.Module):
-    def __init__(self, activation=F.relu):
-        super(VGG16features, self).__init__()
+def weights_init(m):
+    classname = m.__class__.__name__
+    print (classname)
+    if classname.find('Conv2d') != -1:
+        init.xavier_uniform(m.weight.data)
+        init.constant(m.bias.data, 0.1)
+    elif classname.find('BatchNorm') != -1:
+        m.weight.data.normal_(1.0, 0.02)
+        m.bias.data.fill_(0)
 
-        self.activation = activation
-        self.conv1_1 = nn.Conv2d(3, 64, kernel_size=3, stride=1, padding=(33, 33))
-        self.conv1_2 = nn.Conv2d(64, 64, kernel_size=3, stride=1, padding=1)
-        self.pool1 = nn.MaxPool2d(kernel_size=2, stride=2, padding=0)
+def transfer_weights(model_from, model_to):
+    wf = copy.deepcopy(model_from.state_dict())
+    wt = model_to.state_dict()
+    for k in wt.keys():
+        if not k in wf:
+            wf[k] = wt[k]
+    model_to.load_state_dict(wf)
 
-        self.conv2_1 = nn.Conv2d(64, 128, kernel_size=3, stride=1, padding=1)
-        self.conv2_2 = nn.Conv2d(128, 128, kernel_size=3, stride=1, padding=1)
-        self.pool2 = nn.MaxPool2d(kernel_size=2, stride=2, padding=0)
+def convert_vgg(vgg16):
+	net = vgg()
+	vgg_items = list(net.state_dict().items())
+	vgg16_items = list(vgg16.items())
+	pretrain_model = {}
+	j = 0
+	for k, v in net.state_dict().items():
+	    v = vgg16_items[j][1]
+	    k = vgg_items[j][0]
+	    pretrain_model[k] = v
+	    j += 1
+	return pretrain_model
 
-        self.conv3_1 = nn.Conv2d(128, 256, kernel_size=3, stride=1, padding=1)
-        self.conv3_2 = nn.Conv2d(256, 256, kernel_size=3, stride=1, padding=1)
-        self.conv3_3 = nn.Conv2d(256, 256, kernel_size=3, stride=1, padding=1)
-        self.pool3 = nn.MaxPool2d(kernel_size=2, stride=2, padding=0)
+class vgg(nn.Module):
+    def __init__(self):
+        super(vgg, self).__init__()
 
-        self.conv4_1 = nn.Conv2d(256, 512, kernel_size=3, stride=1, padding=1)
-        self.conv4_2 = nn.Conv2d(512, 512, kernel_size=3, stride=1, padding=1)
-        self.conv4_3 = nn.Conv2d(512, 512, kernel_size=3, stride=1, padding=1)
-        self.pool4 = nn.MaxPool2d(kernel_size=2, stride=2, padding=0)
-
-        self.conv5_1 = nn.Conv2d(512, 512, kernel_size=3, stride=1, padding=1)
-        self.conv5_2 = nn.Conv2d(512, 512, kernel_size=3, stride=1, padding=1)
-        self.conv5_3 = nn.Conv2d(512, 512, kernel_size=3, stride=1, padding=1)
-        self.pool5 = nn.MaxPool2d(kernel_size=2, stride=2, padding=0)
-
-        for m in self.modules():
-            if isinstance(m, nn.Conv2d):
-                n = m.kernel_size[0] * m.kernel_size[1] * m.out_channels
-                m.weight.data.normal_(0, (2. / n) ** .5)
-            elif isinstance(m, nn.BatchNorm2d):
-                m.weight.data.fill_(1)
-                m.bias.data.zero_()
-
-    def forward(self, x):
-        x = self.conv1_1(x)
-        x = self.activation(x)
-        x = self.conv1_2(x)
-        c1 = self.activation(x)
-
-        x = self.pool1(c1)
-
-        x = self.conv2_1(x)
-        x = self.activation(x)
-        x = self.conv2_2(x)
-        c2 = self.activation(x)
-
-        x = self.pool2(c2)
-
-        x = self.conv3_1(x)
-        x = self.activation(x)
-        x = self.conv3_2(x)
-        x = self.activation(x)
-        x = self.conv3_3(x)
-        c3 = self.activation(x)
-
-        x = self.pool3(c3)
-
-        x = self.conv4_1(x)
-        x = self.activation(x)
-        x = self.conv4_2(x)
-        x = self.activation(x)
-        x = self.conv4_3(x)
-        c4 = self.activation(x)
-
-        x = self.pool4(c4)
-
-        x = self.conv5_1(x)
-        x = self.activation(x)
-        x = self.conv5_2(x)
-        x = self.activation(x)
-        x = self.conv5_3(x)
-        c5 = self.activation(x)
-
-        x = self.pool5(c5)
-
-        return x
-
-    def forward_hypercol(self, x):
-        x = self.conv1_1(x)
-        x = self.activation(x)
-        x = self.conv1_2(x)
-        c1 = self.activation(x)
-
-        x = self.pool1(c1)
-
-        x = self.conv2_1(x)
-        x = self.activation(x)
-        x = self.conv2_2(x)
-        c2 = self.activation(x)
-
-        x = self.pool2(c2)
-
-        x = self.conv3_1(x)
-        x = self.activation(x)
-        x = self.conv3_2(x)
-        x = self.activation(x)
-        x = self.conv3_3(x)
-        c3 = self.activation(x)
-
-        x = self.pool3(c3)
-
-        x = self.conv4_1(x)
-        x = self.activation(x)
-        x = self.conv4_2(x)
-        x = self.activation(x)
-        x = self.conv4_3(x)
-        c4 = self.activation(x)
-
-        x = self.pool4(c4)
-
-        x = self.conv5_1(x)
-        x = self.activation(x)
-        x = self.conv5_2(x)
-        x = self.activation(x)
-        x = self.conv5_3(x)
-        c5 = self.activation(x)
-
-        return c1, c2, c3, c4, c5
-
-# VGG model definition
-class VGG(nn.Module):
-
-    def __init__(self, features, num_classes=1000):
-        super(VGG, self).__init__()
-        self.features = features
-        self.classifier = nn.Sequential(
-            nn.Linear(512 * 7 * 7, 4096),
-            nn.ReLU(True),
-            nn.Dropout(),
-            nn.Linear(4096, 4096),
-            nn.ReLU(True),
-            nn.Dropout(),
-            nn.Linear(4096, num_classes),
+        # conv1
+        self.conv1 = nn.Sequential(
+            nn.Conv2d(3, 64, 3, padding=35),
+            nn.ReLU(inplace=True),
+            nn.Conv2d(64, 64, 3, padding=1),
+            nn.ReLU(inplace=True),
         )
-        self._initialize_weights()
+
+        # conv2
+        self.conv2 = nn.Sequential(
+            nn.MaxPool2d(2, stride=2, ceil_mode=True),  # 1/2
+            nn.Conv2d(64, 128, 3, padding=1),
+            nn.ReLU(inplace=True),
+            nn.Conv2d(128, 128, 3, padding=1),
+            nn.ReLU(inplace=True),
+        )
+
+        # conv3
+        self.conv3 = nn.Sequential(
+            nn.MaxPool2d(2, stride=2, ceil_mode=True),  # 1/4
+            nn.Conv2d(128, 256, 3, padding=1),
+            nn.ReLU(inplace=True),
+            nn.Conv2d(256, 256, 3, padding=1),
+            nn.ReLU(inplace=True),
+            nn.Conv2d(256, 256, 3, padding=1),
+            nn.ReLU(inplace=True),
+        )
+
+        # conv4
+        self.conv4 = nn.Sequential(
+            nn.MaxPool2d(2, stride=2, ceil_mode=True),  # 1/8
+            nn.Conv2d(256, 512, 3, padding=1),
+            nn.ReLU(inplace=True),
+            nn.Conv2d(512, 512, 3, padding=1),
+            nn.ReLU(inplace=True),
+            nn.Conv2d(512, 512, 3, padding=1),
+            nn.ReLU(inplace=True),
+        )
+
+        # conv5
+        self.conv5 = nn.Sequential(
+            nn.MaxPool2d(2, stride=2, ceil_mode=True),  # 1/16
+            nn.Conv2d(512, 512, 3, padding=1),
+            nn.ReLU(inplace=True),
+            nn.Conv2d(512, 512, 3, padding=1),
+            nn.ReLU(inplace=True),
+            nn.Conv2d(512, 512, 3, padding=1),
+            nn.ReLU(inplace=True),
+        )
 
     def forward(self, x):
-        x = self.features(x)
-        x = x.view(x.size(0), -1)
-        x = self.classifier(x)
-        return x
 
-    def _initialize_weights(self):
-        for m in self.modules():
-            if isinstance(m, nn.Conv2d):
-                n = m.kernel_size[0] * m.kernel_size[1] * m.out_channels
-                m.weight.data.normal_(0, (2. / n)**.5)
-                if m.bias is not None:
-                    m.bias.data.zero_()
-            elif isinstance(m, nn.BatchNorm2d):
-                m.weight.data.fill_(1)
-                m.bias.data.zero_()
-            elif isinstance(m, nn.Linear):
-                m.weight.data.normal_(0, 0.01)
-                m.bias.data.zero_()
+        conv1 = self.conv1(x)
+        conv2 = self.conv2(conv1)
+        conv3 = self.conv3(conv2)
+        conv4 = self.conv4(conv3)
+        conv5 = self.conv5(conv4)
+        return conv5
 
-# load pre-trained VGG-16 model
-def vgg16(pretrained=False, **kwargs):
-    """VGG 16-layer model (configuration "D")
-    Args:
-        pretrained (bool): If True, returns a model pre-trained on ImageNet
-    """
-    VGG16fs = VGG16features()
-    model = VGG(VGG16fs, **kwargs)
-    if pretrained:
-        state_dict = torch.utils.model_zoo.load_url(torchvision.models.vgg.model_urls['vgg16'])
-        new_state_dict = {}
-
-        original_layer_ids = set()
-        # copy the classifier entries and make a mapping for the feature mappings
-        for key in state_dict.keys():
-            if 'classifier' in key:
-                new_state_dict[key] = state_dict[key]
-            elif 'features' in key:
-                original_layer_ids.add(int(key.split('.')[1]))
-        sorted_original_layer_ids = sorted(list(original_layer_ids))
-
-        layer_ids = set()
-        for key in model.state_dict().keys():
-            if 'classifier' in key:
-                continue
-            elif 'features' in key:
-                layer_id = key.split('.')[1]
-                layer_ids.add(layer_id)
-        sorted_layer_ids = sorted(list(layer_ids))
-
-        for key, value in state_dict.items():
-            if 'features' in key:
-                original_layer_id = int(key.split('.')[1])
-                original_param_id = key.split('.')[2]
-                idx = sorted_original_layer_ids.index(original_layer_id)
-                new_layer_id = sorted_layer_ids[idx]
-                new_key = 'features.' + new_layer_id + '.' + original_param_id
-                new_state_dict[new_key] = value
-
-        model.load_state_dict(new_state_dict)
-    return model, VGG16fs
-
-# definition of HED module
 class HED(nn.Module):
-    def __init__(self, pretrained=True):
-        # define VGG architecture and layers
+    def __init__(self):
         super(HED, self).__init__()
-        
-        # define fully-convolutional layers
+
+        # conv1
+        self.conv1 = nn.Sequential(
+            nn.Conv2d(3, 64, 3, padding=1),
+            nn.ReLU(inplace=True),
+            nn.Conv2d(64, 64, 3, padding=1),
+            nn.ReLU(inplace=True),
+        )
+
+        # conv2
+        self.conv2 = nn.Sequential(
+            nn.MaxPool2d(2, stride=2, ceil_mode=True),  # 1/2
+            nn.Conv2d(64, 128, 3, padding=1),
+            nn.ReLU(inplace=True),
+            nn.Conv2d(128, 128, 3, padding=1),
+            nn.ReLU(inplace=True),
+        )
+
+        # conv3
+        self.conv3 = nn.Sequential(
+            nn.MaxPool2d(2, stride=2, ceil_mode=True),  # 1/4
+            nn.Conv2d(128, 256, 3, padding=1),
+            nn.ReLU(inplace=True),
+            nn.Conv2d(256, 256, 3, padding=1),
+            nn.ReLU(inplace=True),
+            nn.Conv2d(256, 256, 3, padding=1),
+            nn.ReLU(inplace=True),
+        )
+
+        # conv4
+        self.conv4 = nn.Sequential(
+            nn.MaxPool2d(2, stride=2, ceil_mode=True),  # 1/8
+            nn.Conv2d(256, 512, 3, padding=1),
+            nn.ReLU(inplace=True),
+            nn.Conv2d(512, 512, 3, padding=1),
+            nn.ReLU(inplace=True),
+            nn.Conv2d(512, 512, 3, padding=1),
+            nn.ReLU(inplace=True),
+        )
+
+        # conv5
+        self.conv5 = nn.Sequential(
+            nn.MaxPool2d(2, stride=2, ceil_mode=True),  # 1/16
+            nn.Conv2d(512, 512, 3, padding=1),
+            nn.ReLU(inplace=True),
+            nn.Conv2d(512, 512, 3, padding=1),
+            nn.ReLU(inplace=True),
+            nn.Conv2d(512, 512, 3, padding=1),
+            nn.ReLU(inplace=True),
+        )
+
         self.dsn1 = nn.Conv2d(64, 1, 1)
         self.dsn2 = nn.Conv2d(128, 1, 1)
         self.dsn3 = nn.Conv2d(256, 1, 1)
         self.dsn4 = nn.Conv2d(512, 1, 1)
         self.dsn5 = nn.Conv2d(512, 1, 1)
-        self.dsn6 = nn.Conv2d(5, 1, 1)
-        
-        # define upsampling/deconvolutional layers
-        self.upscore2 = nn.Upsample(scale_factor=2, mode='bilinear')
-        self.upscore3 = nn.Upsample(scale_factor=4, mode='bilinear')
-        self.upscore4 = nn.Upsample(scale_factor=8, mode='bilinear')
-        self.upscore5 = nn.Upsample(scale_factor=16, mode='bilinear')              
-        
-        # initialize weights of layers
-        for m in self.named_modules():
-            if m[0] == 'dsn6':
-                m[1].weight.data.fill_(0.2)
-            elif isinstance(m[1], nn.Conv2d):
-                n = m[1].kernel_size[0] * m[1].kernel_size[1] * m[1].out_channels
-                m[1].weight.data.normal_(0, (2. / n) ** .5)
-            elif isinstance(m[1], nn.BatchNorm2d):
-                m[1].weight.data.fill_(1)
-                m[1].bias.data.zero_()
-        
-        _, VGG16fs = vgg16(pretrained=pretrained)
-        self.VGG16fs = VGG16fs
+        self.fuse = nn.Conv2d(5, 1, 1)
 
-    # define the computation graph
     def forward(self, x):
+        h = x.size(2)
+        w = x.size(3)
 
-        size = x.size()[2:4]
-        
-        # get output from VGG model
-        conv1, conv2, conv3, conv4, conv5 = self.VGG16fs.forward_hypercol(x)
+        conv1 = self.conv1(x)
+        conv2 = self.conv2(conv1)
+        conv3 = self.conv3(conv2)
+        conv4 = self.conv4(conv3)
+        conv5 = self.conv5(conv4)
 
         ## side output
-        dsn5_up = self.upscore5(self.dsn5(conv5))
-        d5 = self.crop(dsn5_up, size)
-        
-        dsn4_up = self.upscore4(self.dsn4(conv4))
-        d4 = self.crop(dsn4_up, size)
-        
-        dsn3_up = self.upscore3(self.dsn3(conv3))
-        d3 = self.crop(dsn3_up, size)
-        
-        dsn2_up = self.upscore2(self.dsn2(conv2))
-        d2 = self.crop(dsn2_up, size)
-        
-        dsn1 = self.dsn1(conv1)
-        d1 = self.crop(dsn1, size)
+        d1 = self.dsn1(conv1)
+        d2 = F.upsample_bilinear(self.dsn2(conv2), size=(h,w))
+        d3 = F.upsample_bilinear(self.dsn3(conv3), size=(h,w))
+        d4 = F.upsample_bilinear(self.dsn4(conv4), size=(h,w))
+        d5 = F.upsample_bilinear(self.dsn5(conv5), size=(h,w))
 
-        # weighted fusion (with learning fusion weights)
-        d6 = self.dsn6(torch.cat((d1,d2,d3,d4,d5),1))
+        # dsn fusion output
+        fuse = self.fuse(torch.cat((d1, d2, d3, d4, d5), 1))
         
         d1 = F.sigmoid(d1)
         d2 = F.sigmoid(d2)
         d3 = F.sigmoid(d3)
         d4 = F.sigmoid(d4)
         d5 = F.sigmoid(d5)
-        d6 = F.sigmoid(d6)
+        fuse = F.sigmoid(fuse)
 
-        return d1, d2, d3, d4, d5, d6
-    
-    # function to crop the padding pixels
-    def crop(self, d, size):
-        d_h, d_w = d.size()[2:4]
-        g_h, g_w = size[0], size[1]
-        d1 = d[:, :, int(math.floor((d_h - g_h)/2.0)):int(math.floor((d_h - g_h)/2.0)) + g_h, int(math.floor((d_w - g_w)/2.0)):int(math.floor((d_w - g_w)/2.0)) + g_w]
-        return d1
+        return d1, d2, d3, d4, d5, fuse
