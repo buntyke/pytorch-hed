@@ -20,9 +20,11 @@ from torch.utils.data import Dataset
 
 # BSDS dataset class for training data
 class TrainDataset(Dataset):
-    def __init__(self, fileNames, rootDir, transform=None):        
+    def __init__(self, fileNames, rootDir, 
+                 transform=None, target_transform=None):        
         self.rootDir = rootDir
         self.transform = transform
+        self.targetTransform = target_transform
         self.frame = pd.read_csv(fileNames, dtype=str, delimiter=' ')
 
     def __len__(self):
@@ -32,25 +34,16 @@ class TrainDataset(Dataset):
         # input and target images
         inputName = os.path.join(self.rootDir, self.frame.iloc[idx, 0])
         targetName = os.path.join(self.rootDir, self.frame.iloc[idx, 1])
-        
+
         # process the images
-        inputImage = np.asarray(Image.open(inputName).convert('RGB'))
-        inputImage = inputImage.astype(np.float32)
-        inputImage = inputImage/255.0
-        inputImage -= np.array((0.485, 0.456, 0.406))
-        inputImage /= np.array((0.229, 0.224, 0.225))
-        inputImage = inputImage.transpose((2,0,1))
-        #inputImage = torch.from_numpy(inputImage)
-        
-        targetImage = io.imread(targetName)
-        if len(targetImage.shape) == 3:
-            targetImage = targetImage[:,:,0]
-        targetImage = targetImage/255.0
-        targetImage = targetImage > 0.0
-        targetImage = targetImage.astype(np.float32)
-        targetImage = np.expand_dims(targetImage, axis=0)        
-        #targetImage = torch.from_numpy(targetImage)
-        
+        inputImage = Image.open(inputName).convert('RGB')
+        if self.transform is not None:
+            inputImage = self.transform(inputImage)
+
+        targetImage = Image.open(targetName).convert('L')
+        if self.targetTransform is not None:
+            targetImage = self.targetTransform(targetImage)
+
         return inputImage, targetImage
     
 # dataset class for test dataset
@@ -67,14 +60,10 @@ class TestDataset(Dataset):
         # input and target images
         fname = self.frame.iloc[idx, 0]
         inputName = os.path.join(self.rootDir, fname)
-        
+
         # process the images
         inputImage = np.asarray(Image.open(inputName).convert('RGB'))
-        inputImage = inputImage.astype(np.float32)
-        inputImage = inputImage/255.0
-        inputImage -= np.array((0.485, 0.456, 0.406))
-        inputImage /= np.array((0.229, 0.224, 0.225))
-        inputImage = inputImage.transpose((2,0,1))
-        #inputImage = torch.from_numpy(inputImage)
-                
+        if self.transform is not None:
+            inputImage = self.transform(inputImage)
+
         return inputImage, fname
