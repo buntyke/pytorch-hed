@@ -23,19 +23,17 @@ I use docker to avoid dependency problems. Installation instructions for my setu
 
 * Download repository:
   ```
-  $ git clone https://github.com/buntyke/hed_pytorch.git
+  $ git clone https://github.com/buntyke/pytorch-hed.git
   ```
 * Create `data` folder, download and extract BSDS dataset into folder:
   ```
-  $ cd hed_pytorch/
+  $ cd pytorch-hed/
   $ mkdir data; cd data
   $ wget http://vcl.ucsd.edu/hed/HED-BSDS.tar
   $ tar -xvf HED-BSDS.tar
   $ rm HED-BSDS.tar
-  ```
-* Create output folder to save results:
-  ```
-  $ mkdir output
+  $ cd HED-BSDS/
+  $ head -n 10 train_pair.lst > val_pair.lst
   ```
 * Train HED model by running `train.ipynb` in jupyter-notebook and following the instructions:
   ```
@@ -56,7 +54,7 @@ I use docker to avoid dependency problems. Installation instructions for my setu
 
 ## Acknowledgement
 
-The source code is derived from three different implementations available online. Thanks to [@s9xie][2] for original caffe implementation. Thanks to [@EliasVansteenkiste][3] and [@xlliu][4] for the pytorch implementations.
+The source code is derived from three different implementations available online. Thanks to [@s9xie][2] for original caffe implementation. Thanks to [@EliasVansteenkiste][3], [@xlliu][4], [@BinWang-shu][5] for the pytorch implementations.
 
 [1]: https://arxiv.org/abs/1504.06375 "HED"
 
@@ -65,3 +63,5 @@ The source code is derived from three different implementations available online
 [3]: https://github.com/EliasVansteenkiste/edge_detection_framework "Pytorch 1"
 
 [4]: https://github.com/xlliu7/hed.pytorch "Pytorch 2"
+
+[5]: https://github.com/BinWang-shu/pytorch_hed "Pytorch 3"

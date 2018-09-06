@@ -16,7 +16,7 @@ Please follow these instructions to setup the computation environment. I use doc
 * From within the docker image:
   ```
   # pip install jupyter jupyter-lab --upgrade
-  # git clone https://github.com/buntyke/hed_pytorch
+  # git clone https://github.com/buntyke/pytorch-hed
   ```
 
 * Run jupyter notebook with the following command:
