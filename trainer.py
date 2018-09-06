@@ -24,8 +24,9 @@ from torch.autograd import Variable
 # utility class for training HED model
 class Trainer(object):
     # init function for class
-    def __init__(self, generator, optimizerG, trainDataloader, valDataloader, 
-                 nBatch=10, out='train', maxEpochs=1, cuda=True, gpuID=0):
+    def __init__(self, generator, optimizerG, trainDataloader, valDataloader,
+                 nBatch=10, out='train', maxEpochs=1, cuda=True, gpuID=0,
+                 lrDecayEpochs={}):
 
         # set the GPU flag
         self.cuda = cuda
@@ -50,8 +51,8 @@ class Trainer(object):
         self.epoch = 0
         self.nBatch = nBatch
         self.nepochs = maxEpochs
+        self.lrDecayEpochs = lrDecayEpochs
         
-        self.step = 3
         self.gamma = 0.1
         self.valInterval = 500
         self.dispInterval = 100
@@ -67,9 +68,8 @@ class Trainer(object):
             self.optimG.zero_grad()
             
             # adjust hed learning rate
-            if (epoch > 0) and (epoch % self.step) == 0:
+            if epoch in self.lrDecayEpochs:
                 self.adjustLR()
-            self.showLR()
 
             # train the network
             losses = []
@@ -83,16 +83,16 @@ class Trainer(object):
                 data, target = Variable(data), Variable(target)
                 
                 # generator forward
-                tar = self.crop(target)
+                tar = target
                 d1, d2, d3, d4, d5, d6 = self.generator(data) 
                 
                 # compute loss for batch
-                loss1 = self.bce2d(self.crop(d1), tar)
-                loss2 = self.bce2d(self.crop(d2), tar)
-                loss3 = self.bce2d(self.crop(d3), tar)
-                loss4 = self.bce2d(self.crop(d4), tar)
-                loss5 = self.bce2d(self.crop(d5), tar)
-                loss6 = self.bce2d(self.crop(d6), tar)
+                loss1 = self.bce2d(d1, tar)
+                loss2 = self.bce2d(d2, tar)
+                loss3 = self.bce2d(d3, tar)
+                loss4 = self.bce2d(d4, tar)
+                loss5 = self.bce2d(d5, tar)
+                loss6 = self.bce2d(d6, tar)
                 
                 # all components have equal weightage
                 loss = loss1 + loss2 + loss3 + loss4 + loss5 + loss6
@@ -184,12 +184,29 @@ class Trainer(object):
 
     # binary cross entropy loss in 2D
     def bce2d(self, input, target):
-        # do not compute gradients w.r.t target
-        self._assertNoGrad(target)
-        
-        beta = 1 - torch.mean(target)
-        weights = 1 - beta + (2 * beta - 1) * target
-        loss = F.binary_cross_entropy(input, target, weights, size_average=True)
+        n, c, h, w = input.size()
+    
+        # assert(max(target) == 1)
+        log_p = input.transpose(1, 2).transpose(2, 3).contiguous().view(1, -1)
+        target_t = target.transpose(1, 2).transpose(2, 3).contiguous().view(1, -1)
+        target_trans = target_t.clone()
+        pos_index = (target_t >0)
+        neg_index = (target_t ==0)
+        target_trans[pos_index] = 1
+        target_trans[neg_index] = 0
+        pos_index = pos_index.data.cpu().numpy().astype(bool)
+        neg_index = neg_index.data.cpu().numpy().astype(bool)
+        weight = torch.Tensor(log_p.size()).fill_(0)
+        weight = weight.numpy()
+        pos_num = pos_index.sum()
+        neg_num = neg_index.sum()
+        sum_num = pos_num + neg_num
+        weight[pos_index] = neg_num*1.0 / sum_num
+        weight[neg_index] = pos_num*1.0 / sum_num
+
+        weight = torch.from_numpy(weight)
+        weight = weight.cuda()
+        loss = F.binary_cross_entropy(log_p, target_t, weight, size_average=True)
         return loss
 
     def grayTrans(self, img):
@@ -202,7 +219,3 @@ class Trainer(object):
     def adjustLR(self):
         for param_group in self.optimG.param_groups:
             param_group['lr'] *= self.gamma 
-
-    def showLR(self):
-        for param_group in self.optimG.param_groups:
-            print(param_group['lr'])
