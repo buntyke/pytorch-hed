@@ -34,12 +34,20 @@ I use docker to avoid dependency problems. Installation instructions for my setu
   $ rm HED-BSDS.tar
   $ cd HED-BSDS/
   $ head -n 10 train_pair.lst > val_pair.lst
+  $ cd ../../
   ```
-* Train HED model by running `train.ipynb` in jupyter-notebook and following the instructions:
+* Download the VGG pretrained model to initialize training
   ```
-  $ jupyter notebook 
+  $ mkdir model; cd model/
+  $ wget https://download.pytorch.org/models/vgg16-397923af.pth
+  $ mv vgg16-397923af.pth vgg16.pth
+  $ cd ..
   ```
-  The trained model along with validation results are stored in the output folder.
+* Train HED model by running `train.py` or `train.ipynb` notebook following the instructions:
+  ```
+  $ python train.py 
+  ```
+  The trained model along with validation results are stored in the train folder.
 
 ## Performance
 
